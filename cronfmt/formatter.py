@@ -37,6 +37,10 @@ FIELDS = (
     Field("day of week", (0, 7), names=DOW_NAMES, canonicalize=_fold_sunday),
 )
 
+# some schedulers (Quartz, several cron forks) prepend a seconds column
+# ahead of minute; accept it as an optional 6th leading field
+FIELDS_WITH_SECONDS = (Field("second", (0, 59)),) + FIELDS
+
 MACROS = {
     "@yearly",
     "@annually",
@@ -52,6 +56,8 @@ MACROS = {
 def format_cron(expression: str) -> str:
     """Return a canonical rendering of a cron expression.
 
+    Accepts the standard 5-field form (minute hour day-of-month month
+    day-of-week) or a 6-field form with a leading seconds column.
     Collapses stray whitespace, strips leading zeros, dedupes and sorts
     comma lists, folds day/month name casing, and folds day-of-week 7
     down to 0. Raises CronFormatError on anything it can't make sense of.
@@ -70,13 +76,18 @@ def format_cron(expression: str) -> str:
         return macro
 
     tokens = stripped.split()
-    if len(tokens) != len(FIELDS):
+    if len(tokens) == len(FIELDS_WITH_SECONDS):
+        fields = FIELDS_WITH_SECONDS
+    elif len(tokens) == len(FIELDS):
+        fields = FIELDS
+    else:
         raise CronFormatError(
-            f"expected {len(FIELDS)} fields (minute hour day-of-month month day-of-week), "
+            f"expected {len(FIELDS)} fields (minute hour day-of-month month day-of-week) "
+            f"or {len(FIELDS_WITH_SECONDS)} with a leading seconds field, "
             f"got {len(tokens)}: '{expression}'"
         )
 
-    normalized = [_normalize_field(token, field) for token, field in zip(tokens, FIELDS)]
+    normalized = [_normalize_field(token, field) for token, field in zip(tokens, fields)]
     return " ".join(normalized)
 
 

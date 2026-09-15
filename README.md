@@ -27,7 +27,14 @@ format_cron("*/05 * * * 7")
 
 format_cron("  @Daily  ")
 # '@daily'
+
+format_cron("00 30 0 12 * *")
+# '0 30 0 12 * *'
 ```
+
+A 6-field expression is accepted with a leading seconds column
+(`second minute hour day-of-month month day-of-week`), the convention
+used by Quartz and several cron forks.
 
 Malformed input raises `cronfmt.CronFormatError`:
 
@@ -50,11 +57,11 @@ except CronFormatError as exc:
 - normalizes step values (`*/05` -> `*/5`)
 - recognizes the `@yearly` / `@monthly` / `@weekly` / `@daily` /
   `@hourly` / `@midnight` / `@reboot` / `@annually` shorthands
+- accepts an optional leading seconds field (6-field form)
 - rejects anything with the wrong field count or an out-of-range value
 
 ## What it does not do (yet)
 
-- 6-field expressions with a seconds column
 - sorting month/weekday names into calendar order when mixed with numbers
 - expanding full names (`Monday`) to abbreviations
 

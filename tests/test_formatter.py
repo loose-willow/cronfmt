@@ -18,6 +18,11 @@ OK_CASES = [
     ("* * * * 0,7", "* * * * 0"),
     ("  @Daily  ", "@daily"),
     ("@WEEKLY", "@weekly"),
+    ("0 0 12 * * *", "0 0 12 * * *"),
+    ("  30   0   12   *  *  *  ", "30 0 12 * * *"),
+    ("05 0 12 * * MoN-FRI", "5 0 12 * * MON-FRI"),
+    ("*/05 * * * * *", "*/5 * * * * *"),
+    ("00 00 00 1 1 0", "0 0 0 1 1 0"),
 ]
 
 # (input, fragment expected somewhere in the raised error message)
@@ -32,6 +37,8 @@ ERROR_CASES = [
     ("", "empty cron expression"),
     ("   ", "empty cron expression"),
     ("* * , * *", "empty value"),
+    ("60 * * * * *", "out of range"),
+    ("* * * * * * *", "expected 5 fields"),
 ]
 
 
