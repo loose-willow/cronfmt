@@ -12,16 +12,19 @@ class CronFormatError(ValueError):
 class Field:
     name: str
     bounds: Tuple[int, int]
-    names: Dict[str, str] = dc_field(default_factory=dict)
+    names: Dict[str, int] = dc_field(default_factory=dict)
     canonicalize: Optional[Callable[[int], int]] = None
 
 
 MONTH_NAMES = {
-    name: name
-    for name in ("JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC")
+    name: index
+    for index, name in enumerate(
+        ("JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"),
+        start=1,
+    )
 }
 
-DOW_NAMES = {name: name for name in ("SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT")}
+DOW_NAMES = {name: index for index, name in enumerate(("SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"))}
 
 
 def _fold_sunday(value: int) -> int:
@@ -104,14 +107,20 @@ def _normalize_field(token: str, field: Field) -> str:
             seen.add(piece)
             pieces.append(piece)
 
-    pieces.sort(key=_sort_key)
+    pieces.sort(key=lambda piece: _sort_key(piece, field))
     return ",".join(pieces)
 
 
-def _sort_key(piece: str):
-    if piece.isdigit():
-        return (0, int(piece), piece)
-    return (1, 0, piece)
+def _sort_key(piece: str, field: Field):
+    # order by the field's calendar value (so JAN sorts before DEC, and a
+    # bare "3" interleaves with month names by what month it actually is),
+    # with wildcards first and the full piece as a tiebreak for determinism
+    start = piece.split("/", 1)[0].split("-", 1)[0]
+    if start == "*":
+        return (0, 0, piece)
+    if start in field.names:
+        return (1, field.names[start], piece)
+    return (1, int(start), piece)
 
 
 def _normalize_piece(raw: str, field: Field) -> str:

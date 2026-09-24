@@ -53,6 +53,8 @@ except CronFormatError as exc:
 - strips leading zeros (`09` -> `9`)
 - dedupes and sorts comma-separated lists (`5,1,5,3` -> `1,3,5`)
 - upper-cases month and weekday names (`mon-fri` -> `MON-FRI`)
+- sorts month/weekday names in calendar order, even mixed with numbers
+  (`DEC,6` -> `6,DEC`, since June comes before December)
 - folds day-of-week `7` down to `0` (both mean Sunday)
 - normalizes step values (`*/05` -> `*/5`)
 - recognizes the `@yearly` / `@monthly` / `@weekly` / `@daily` /
@@ -62,7 +64,6 @@ except CronFormatError as exc:
 
 ## What it does not do (yet)
 
-- sorting month/weekday names into calendar order when mixed with numbers
 - expanding full names (`Monday`) to abbreviations
 
 See the test suite in `tests/test_formatter.py` for the exact set of
