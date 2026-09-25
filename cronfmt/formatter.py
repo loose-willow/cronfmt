@@ -13,18 +13,26 @@ class Field:
     name: str
     bounds: Tuple[int, int]
     names: Dict[str, int] = dc_field(default_factory=dict)
+    full_names: Dict[str, str] = dc_field(default_factory=dict)
     canonicalize: Optional[Callable[[int], int]] = None
 
 
-MONTH_NAMES = {
-    name: index
-    for index, name in enumerate(
-        ("JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"),
-        start=1,
-    )
-}
+MONTH_ABBREVS = ("JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC")
+MONTH_FULL_NAMES = (
+    "JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY",
+    "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER",
+)
 
-DOW_NAMES = {name: index for index, name in enumerate(("SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"))}
+DOW_ABBREVS = ("SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT")
+DOW_FULL_NAMES = ("SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY")
+
+MONTH_NAMES = {name: index for index, name in enumerate(MONTH_ABBREVS, start=1)}
+DOW_NAMES = {name: index for index, name in enumerate(DOW_ABBREVS)}
+
+# full spellings ("MONDAY") map to the abbreviation ("MON") rather than
+# straight to a number, so they go through the same bounds/dedupe logic
+MONTH_FULL_TO_ABBREV = dict(zip(MONTH_FULL_NAMES, MONTH_ABBREVS))
+DOW_FULL_TO_ABBREV = dict(zip(DOW_FULL_NAMES, DOW_ABBREVS))
 
 
 def _fold_sunday(value: int) -> int:
@@ -36,8 +44,14 @@ FIELDS = (
     Field("minute", (0, 59)),
     Field("hour", (0, 23)),
     Field("day of month", (1, 31)),
-    Field("month", (1, 12), names=MONTH_NAMES),
-    Field("day of week", (0, 7), names=DOW_NAMES, canonicalize=_fold_sunday),
+    Field("month", (1, 12), names=MONTH_NAMES, full_names=MONTH_FULL_TO_ABBREV),
+    Field(
+        "day of week",
+        (0, 7),
+        names=DOW_NAMES,
+        full_names=DOW_FULL_TO_ABBREV,
+        canonicalize=_fold_sunday,
+    ),
 )
 
 # some schedulers (Quartz, several cron forks) prepend a seconds column
@@ -62,8 +76,10 @@ def format_cron(expression: str) -> str:
     Accepts the standard 5-field form (minute hour day-of-month month
     day-of-week) or a 6-field form with a leading seconds column.
     Collapses stray whitespace, strips leading zeros, dedupes and sorts
-    comma lists, folds day/month name casing, and folds day-of-week 7
-    down to 0. Raises CronFormatError on anything it can't make sense of.
+    comma lists, folds day/month name casing, expands full day/month
+    names (`Monday`) to their three-letter abbreviation, and folds
+    day-of-week 7 down to 0. Raises CronFormatError on anything it
+    can't make sense of.
     """
     if not isinstance(expression, str):
         raise CronFormatError(f"expected a string, got {type(expression).__name__}")
@@ -154,6 +170,7 @@ def _normalize_value(token: str, field: Field) -> str:
         raise CronFormatError(f"empty value in {field.name} field")
 
     upper = token.upper()
+    upper = field.full_names.get(upper, upper)
     if upper in field.names:
         return upper
 

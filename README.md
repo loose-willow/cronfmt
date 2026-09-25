@@ -28,6 +28,12 @@ format_cron("*/05 * * * 7")
 format_cron("  @Daily  ")
 # '@daily'
 
+format_cron("* * * * Monday")
+# '* * * * MON'
+
+format_cron("* * * September *")
+# '* * * SEP *'
+
 format_cron("00 30 0 12 * *")
 # '0 30 0 12 * *'
 ```
@@ -55,16 +61,14 @@ except CronFormatError as exc:
 - upper-cases month and weekday names (`mon-fri` -> `MON-FRI`)
 - sorts month/weekday names in calendar order, even mixed with numbers
   (`DEC,6` -> `6,DEC`, since June comes before December)
+- expands full day/month names to their abbreviation
+  (`Monday` -> `MON`, `September` -> `SEP`)
 - folds day-of-week `7` down to `0` (both mean Sunday)
 - normalizes step values (`*/05` -> `*/5`)
 - recognizes the `@yearly` / `@monthly` / `@weekly` / `@daily` /
   `@hourly` / `@midnight` / `@reboot` / `@annually` shorthands
 - accepts an optional leading seconds field (6-field form)
 - rejects anything with the wrong field count or an out-of-range value
-
-## What it does not do (yet)
-
-- expanding full names (`Monday`) to abbreviations
 
 See the test suite in `tests/test_formatter.py` for the exact set of
 inputs and outputs this is checked against.
